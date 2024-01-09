@@ -47,11 +47,57 @@ _Bool world_try_deserialize(world_t *world, char* buf) {
     return false;
 }
 
-/*void transform_to_buffer(world_t *world, char *buffer) {
-    for (int i = 0; i < world->rows * world->columns; ++i) {
-        buffer[i] = &world->array_world[i];
+void transform_to_buffer(world_t *world, char *buffer) {
+    /*for (int i = 0; i < world->rows * world->columns; ++i) {
+        buffer[i] = (char)world->array_world[i];
+    }*/
+    int index = 0;
+    buffer[index++] = '\n';
+    for (int i = 0; i < world->columns; ++i) {
+        //printf("--");
+        buffer[index++] = '-';
+        buffer[index++] = '-';
     }
-}*/
+    buffer[index++] = '-';
+    buffer[index++] = '\n';
+    //printf("-\n");
+    for (int i = 0; i < world->rows; ++i) {
+        for (int j = 0; j < world->columns; ++j) {
+            buffer[index++] = '|';
+            switch (world->array_world[i * world->columns + j]) {
+                case -1:
+                    //printf("|#");
+                    buffer[index++] = '#';
+                    break;
+                case 1:
+                    //printf("| ");
+                    buffer[index++] = ' ';
+                    break;
+                case 2:
+                    //printf("|.");
+                    buffer[index++] = '.';
+                    break;
+                default:
+                    printf("Something went wrong with world array. Unexpected character!\n");
+                    printf("\nThis is not suppose to be here -> %d\n", world->array_world[i * world->columns + j]);
+                    return;
+            }
+        }
+        buffer[index++] = '|';
+        buffer[index++] = '\n';
+        //printf("|\n");
+        for (int j = 0; j < world->columns; ++j) {
+            //printf("--");
+            buffer[index++] = '-';
+            buffer[index++] = '-';
+        }
+        buffer[index++] = '-';
+        buffer[index++] = '\n';
+        //printf("-\n");
+    }
+    //printf("\n");
+    buffer[index++] = '\n';
+}
 
 void destroyWorld(world_t *world) {
     free(world->array_world);
@@ -65,7 +111,7 @@ void generateBlackFields(world_t *world) {
     int count = world->rows * world->columns;
     //pravdepodobnost cierneho policka
     double probability = (double)rand() / RAND_MAX;
-    printf("%.2f and %d\n", probability * 100, count);
+    //printf("%.2f and %d\n", probability * 100, count);
     for (int i = 0; i < count; ++i) {
         //ak je vygenerovane cislo mensie ako probability tak je cierna (cierna 0 biela 1 mravec 2);
         if ((double)rand() / RAND_MAX < probability) {
@@ -200,8 +246,9 @@ int antsStep(world_t *world, ant_t *ant, int type) {
     return 0;
 }
 
-void simulation(world_t *world, ant_t *ants, int type) {
+void simulation(world_t *world, ant_t *ants, int type, int socket) {
     while (true) {
+        char buf[2048];
         for (int i = 0; i < world->ants; i++) {
             if (antsStep(world, &ants[i], type) == 1) {
                 for (int j = i; j < world->ants - 1; ++j) {
@@ -211,7 +258,14 @@ void simulation(world_t *world, ant_t *ants, int type) {
                 i--;
             }
         }
-        showWorldState(world);
+        transform_to_buffer(world, buf);
+        int n = write(socket, buf, strlen(buf));
+        if (n < 0)
+        {
+            perror("Error writing to socket");
+            return;
+        }
+        //showWorldState(world);
         usleep(1000000);
     }
 }
@@ -289,16 +343,17 @@ int main(int argc, char *argv[])
         }
     }
 
-    simulation(&world, antsArray, world.movement);
+    simulation(&world, antsArray, world.movement, newsockfd);
 
 
-    const char* msg = "I got your message";
-    n = write(newsockfd, msg, strlen(msg)+1);
-    if (n < 0)
-    {
+
+    const char *msg = "I got your message";
+    n = write(newsockfd, msg, strlen(msg));
+    if (n < 0) {
         perror("Error writing to socket");
         return 5;
     }
+
 
     close(newsockfd);
     close(sockfd);
