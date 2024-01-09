@@ -24,12 +24,7 @@ typedef struct world_t {
 } world_t;
 
 void createWorld(world_t *world) {//}, int rows, int columns, int ants, int movement) {
-    //world->rows = rows;
-    //world->columns = columns;
     world->array_world = malloc(sizeof(int) * (world->rows * world->columns));
-    //world->ants = ants;
-    //world->movement = movement;
-    //printf("%d %d %d %d", world->rows, world->columns, world->ants, world->movement);
 }
 
 int createAnt(world_t *world, ant_t *ant, int position, int direction) {
@@ -51,6 +46,12 @@ _Bool world_try_deserialize(world_t *world, char* buf) {
     printf("\nneuspesne bohuzial\n");
     return false;
 }
+
+/*void transform_to_buffer(world_t *world, char *buffer) {
+    for (int i = 0; i < world->rows * world->columns; ++i) {
+        buffer[i] = &world->array_world[i];
+    }
+}*/
 
 void destroyWorld(world_t *world) {
     free(world->array_world);
@@ -270,6 +271,26 @@ int main(int argc, char *argv[])
     world_t world;
     world_try_deserialize(&world, buffer);
     printf("R: %d\nC: %d\nN: %d\nM: %d", world.rows, world.columns, world.ants, world.movement);
+    createWorld(&world);
+    generateBlackFields(&world);
+
+    ant_t antsArray[world.ants];
+    //bud nahodne alebo zo vstupu, chyba vstup
+    for (int i = 0; i < world.ants; ++i) {
+        //double position = (double)rand() / RAND_MAX;
+        if (createAnt(&world, &antsArray[i],
+                      (int)((double)rand() / RAND_MAX * (world.rows * world.columns)),
+                      (int)((double)rand() / RAND_MAX * 4)) == 1) {
+            for (int j = 0; j < world.ants; ++j) {
+                antsArray[j] = antsArray[j + 1];
+            }
+            world.ants--;
+            i--;
+        }
+    }
+
+    simulation(&world, antsArray, world.movement);
+
 
     const char* msg = "I got your message";
     n = write(newsockfd, msg, strlen(msg)+1);
@@ -282,6 +303,7 @@ int main(int argc, char *argv[])
     close(newsockfd);
     close(sockfd);
 
+    destroyWorld(&world);
     /*world_t world;
     createWorld(&world, rows, columns, numberOfAnts, movement);
     if (definingBlackFields == 1) {
