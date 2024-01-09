@@ -25,6 +25,7 @@ typedef struct world_t {
 
 void createWorld(world_t *world) {//}, int rows, int columns, int ants, int movement) {
     world->array_world = malloc(sizeof(int) * (world->rows * world->columns));
+    world->movement = (world->movement == 1) ? 1 : -1;
 }
 
 int createAnt(world_t *world, ant_t *ant, int position, int direction) {
@@ -54,27 +55,22 @@ void transform_to_buffer(world_t *world, char *buffer) {
     int index = 0;
     buffer[index++] = '\n';
     for (int i = 0; i < world->columns; ++i) {
-        //printf("--");
         buffer[index++] = '-';
         buffer[index++] = '-';
     }
     buffer[index++] = '-';
     buffer[index++] = '\n';
-    //printf("-\n");
     for (int i = 0; i < world->rows; ++i) {
         for (int j = 0; j < world->columns; ++j) {
             buffer[index++] = '|';
             switch (world->array_world[i * world->columns + j]) {
                 case -1:
-                    //printf("|#");
                     buffer[index++] = '#';
                     break;
                 case 1:
-                    //printf("| ");
                     buffer[index++] = ' ';
                     break;
                 case 2:
-                    //printf("|.");
                     buffer[index++] = '.';
                     break;
                 default:
@@ -85,20 +81,17 @@ void transform_to_buffer(world_t *world, char *buffer) {
         }
         buffer[index++] = '|';
         buffer[index++] = '\n';
-        //printf("|\n");
         for (int j = 0; j < world->columns; ++j) {
-            //printf("--");
             buffer[index++] = '-';
             buffer[index++] = '-';
         }
         buffer[index++] = '-';
         buffer[index++] = '\n';
-        //printf("-\n");
     }
-    //printf("\n");
     buffer[index++] = '\n';
 }
 
+//postaranie sa o znicenie
 void destroyWorld(world_t *world) {
     free(world->array_world);
     world->rows = 0;
@@ -123,6 +116,7 @@ void generateBlackFields(world_t *world) {
     }
 }
 
+//implementacia metody do buducnosti
 void defineBlackFieldsByHand(world_t *world) {
     int number;
     printf("Define the world by yourself\n0 -> black\n1 -> white\nNumbers must be separated by a space:\n");
@@ -137,6 +131,7 @@ void defineBlackFieldsByHand(world_t *world) {
         }
     }
 }
+
 
 void showWorldState(world_t *world) {
     printf("\n");
@@ -172,6 +167,7 @@ void showWorldState(world_t *world) {
     printf("\n");
 }
 
+//krok mravca podla typu pohybu
 //direct -> biele 1 otocka vpravo, zmena na cierne 0, type direct/inverse
 int antsStep(world_t *world, ant_t *ant, int type) {
     _Bool step = false;
@@ -246,6 +242,7 @@ int antsStep(world_t *world, ant_t *ant, int type) {
     return 0;
 }
 
+//simulacia s posielanim odpovede na klienta
 void simulation(world_t *world, ant_t *ants, int type, int socket) {
     while (true) {
         char buf[2048];
@@ -273,6 +270,7 @@ void simulation(world_t *world, ant_t *ants, int type, int socket) {
 
 int main(int argc, char *argv[])
 {
+    //spracovanie socketu
     int sockfd, newsockfd;
     socklen_t cli_len;
     struct sockaddr_in serv_addr, cli_addr;
@@ -322,9 +320,10 @@ int main(int argc, char *argv[])
     }
     printf("Here is the message: %s\n", buffer);
 
+    //vytvorenie sveta a inicializovanie
     world_t world;
     world_try_deserialize(&world, buffer);
-    printf("R: %d\nC: %d\nN: %d\nM: %d", world.rows, world.columns, world.ants, world.movement);
+    //printf("R: %d\nC: %d\nN: %d\nM: %d", world.rows, world.columns, world.ants, world.movement);
     createWorld(&world);
     generateBlackFields(&world);
 
@@ -359,30 +358,6 @@ int main(int argc, char *argv[])
     close(sockfd);
 
     destroyWorld(&world);
-    /*world_t world;
-    createWorld(&world, rows, columns, numberOfAnts, movement);
-    if (definingBlackFields == 1) {
-        generateBlackFields(&world);
-    } else {
-        defineBlackFieldsByHand(&world);
-    }
-
-    ant_t antsArray[numberOfAnts];
-
-    //bud nahodne alebo zo vstupu, chyba vstup
-    for (int i = 0; i < numberOfAnts; ++i) {
-        //double position = (double)rand() / RAND_MAX;
-        if (createAnt(&world, &antsArray[i],
-                      (int)((double)rand() / RAND_MAX * (rows * columns)),
-                      (int)((double)rand() / RAND_MAX * 4)) == 1) {
-            for (int j = 0; j < numberOfAnts; ++j) {
-                antsArray[j] = antsArray[j + 1];
-            }
-            numberOfAnts--;
-            world.ants--;
-            i--;
-        }
-    }*/
 
     return 0;
 }
